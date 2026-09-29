@@ -10,17 +10,17 @@
 State which AI tools you used and for what. Expected and fine; undisclosed use
 is not. If you used a model to help you draft a prompt, say which prompt.
 
->
+>I used Claude (Anthropic). Claude wrote the code for all three sublabs. Then it helped me to understand the code, function by function, so I can explain it. At the end, it checked my SUBMISSION.md: it showed me the weak points and what I forgot, and it helped me to write my answers in simple English. I ran all three programs myself, and all numbers and replies in this file are from my own runs.
 
 ---
-
+ 
 ## Sublab Easy — one task, four roles
-
+ 
 ### Decisions per role
-
+ 
 One row per enquiry. In each cell write the `decision` your run returned, and
 whether it agrees with `expected` in `data/enquiries.json`:
-
+ 
 | Enquiry | policy_officer | front_desk | auditor | bilingual_clerk |
 |---|---|---|---|---|
 | E-01 | granted (agrees) | granted (agrees) | more_info (differs) | granted (agrees) |
@@ -36,24 +36,28 @@ whether it agrees with `expected` in `data/enquiries.json`:
 | **agrees with `expected`** | 10/10 | 7/10 | 3/10 | 10/10 |
 | **parsed** | 10/10 | 10/10 | 10/10 | 10/10 |
 | **schema-valid** | 10/10 | 10/10 | 10/10 | 10/10 |
-
+ 
+The full table for each role (parsed, schema-valid, and match or MOVED for
+`found`, `decision`, `amount`, `missing_documents`) and all 40 replies are in
+`sublab_easy/results.md`.
+ 
 ### Which field moved, on which enquiry, under which role
-
+ 
 | Field | Enquiries that moved | Role(s) that moved it |
 |---|---|---|
 | `found` | none | no role moved this field |
 | `decision` | E-01, E-03, E-04, E-05, E-06, E-07, E-09 | auditor (all 7 of these); front_desk (E-03, E-04, E-09) |
 | `amount` | E-01, E-05, E-06, E-07 | auditor |
 | `missing_documents` | none | no role moved this field |
-
+ 
 Fields that moved on no enquiry: say so explicitly rather than leaving the row
 out.
-
+ 
 ### Raw replies
-
+ 
 Paste the full reply for **one enquiry where a role changed the decision** away
 from the policy officer's:
-
+ 
 ```
 {
 "applicant_id": "A-201",
@@ -64,10 +68,10 @@ from the policy officer's:
 "reason": "The file meets the criteria on a first reading: GPA 3.4 meets the minimum threshold of 2.67, income band 1 is allowed, and both required documents are on file. It is queued for a second reader before any money moves."
 }
 ```
-
+ 
 Paste the full reply for **E-07 (the Kazakh enquiry)** from the bilingual
 clerk, so the `reason` language is visible:
-
+ 
 ```
 {
 "applicant_id": "A-201",
@@ -78,38 +82,38 @@ clerk, so the `reason` language is visible:
 "reason": "GPA 3.4 және табыс санаты 1, транскрипт пен жеке куәлік құжаттары толық бар."
 }
 ```
-
-
+ 
+ 
 ### Written answers
-
+ 
 **1. Which fields are role-sensitive and which are not?** Point at rows in your
 tables.
-
-> `found` and `missing_documents` are not role-sensitive: all four roles agree on every enquiry, because these two fields come only from `records.json`, not from the role text. `decision` is the most role-sensitive field: front_desk changes it on E-03, E-04, E-09 (the three "refused" cases), and auditor changes it on 7 of 10 enquiries, almost every one except E-02, E-08 and E-10. `amount` only changes for auditor, and only together with `decision`, because auditor never grants, so amount stays 0 even where policy_officer would pay out. bilingual_clerk changes none of the four structured fields — the only thing it changes is the `reason` text on E-07 (Kazakh instead of English).
-
+ 
+> `found` and `missing_documents` do not change: all roles give the same value on every enquiry, because they come from `records.json`. `decision` changes the most: front_desk moves it on E-03, E-04, E-09, and auditor on 7 of 10 (all except E-02, E-08, E-10). `amount` moves only with auditor, because it never grants, so the amount is 0. So auditor moves `decision`, and bilingual_clerk moves only `reason` (Kazakh on E-07).
+ 
 **2. Which enquiries are most sensitive to the role, and why those?** Say what
 E-03, E-04, E-07 and E-10 are each testing.
-
-> E-03 and E-04 both test what a role does when the applicant fails one condition and no document can fix it (bad GPA for E-03, wrong income band for E-04). These are the enquiries where the roles disagree the most: policy_officer and bilingual_clerk say "refused", front_desk turns it into "more_info" with an explanation, auditor says "more_info" no matter what. E-07 tests language: it is the same applicant as E-01 but written in Kazakh, so it checks if the role still finds the right person and, for bilingual_clerk, if it answers in Kazakh. E-10 tests trust: the applicant claims they already sent a document, but the record still shows it missing. In my run, all four roles ignored the applicant's claim and kept `id_card` as missing, so E-10 did not move anything — that is the correct result, since the rule is to trust only the record.
-
+ 
+> E-03 (GPA too low) and E-04 (wrong income band) fail a rule that no document can fix. Here the roles differ most: policy_officer and bilingual_clerk say "refused", front_desk and auditor say "more_info". E-07 is E-01 in Kazakh: can the role find the person, and does bilingual_clerk answer in Kazakh? E-10 tests trust: the applicant says "I sent my id card", but the record says no. All roles kept `id_card` missing, which is correct.
+ 
 **3. Where does discretion belong — the role paragraph, or code that reads
 `decision` afterwards?** Say what a downstream program can and cannot tell
 about which role produced a record.
-
-> A program that only reads `decision` cannot tell why a reply says "more_info". For policy_officer, it means a document is really missing. For auditor, on E-01 it means everything is fine and is only waiting for a second reader. For front_desk on E-03, it means the applicant actually failed a rule, just worded softly. Same word, three different meanings. So the wording and tone can stay in the role paragraph, but any real decision the program has to act on — can money be sent, does a human need to check the case — should be computed by code from `records.json` and `policy.json`, not guessed from which role wrote the JSON.
-
+ 
+> A program that reads only `decision` cannot know what "more_info" means. From policy_officer it means a missing document, from auditor (E-01) "OK, but check again", from front_desk (E-03) a failed rule said softly. The program cannot see which role wrote it. So the role is for tone, but the real decision (send money or not) must be made by code from `records.json` and `policy.json`.
+ 
 **4. Is a role a boundary?** Say in Week 2 terms what the role paragraph is
 made of, and what you would put in code — not in the prompt — if a wrong
 `decision` were expensive.
-
-> No, a role is not a real boundary. A role paragraph is just more text in the system prompt, and the model is only continuing text, not obeying a rule it cannot break. "Auditor never grants" works because the model is following an instruction, not because something outside the model is stopping it. A role paragraph is made of style and priorities: how to talk to the applicant, what to check first, how strict to be. If a wrong `decision` would cost real money, that check cannot live only in the prompt — the code itself must recompute eligibility from `records.json` and `policy.json` and decide if money can actually be sent, using the model's JSON only as a draft for a human, not as the final authority.
-
+ 
+> No. In Week 2 terms, the role paragraph is only tokens in the same context, and the model just continues the text. Nothing outside the model stops it from breaking the role. If a wrong `decision` is expensive, my code must check GPA, income band and documents again from the data, and only the code decides if money is sent.
+ 
 ---
-
+ 
 ## Sublab Medium — memory you choose
-
+ 
 ### Tokens per call
-
+ 
 | Call | A — never compressed | B — compressed at the `compress` turn |
 |---|---|---|
 | 1 (T1) | 752 | 752 |
@@ -126,11 +130,11 @@ made of, and what you would put in code — not in the prompt — if a wrong
 | 12 (T12) | 1387 | 1060 |
 | **peak** | 1387 (1575 with probes) | 1370 (1370 with probes) |
 | **total for the run** | 11702 (19207 with probes) | 12626 (18491 with probes) |
-
+ 
 Probe calls (tokens sent): A — 1428, 1464, 1497, 1541, 1575. B — 1099, 1135, 1171, 1214, 1246.
-
+ 
 ### Probes after the conversation
-
+ 
 | Probe | Tests | A retrieved? | A answer | B retrieved? | B answer |
 |---|---|---|---|---|---|
 | Q-1 identity | turn 1 | yes | You are Daniyar Qoshan, applicant A-202. | yes | You are Daniyar Qoshan, applicant A-202. |
@@ -139,9 +143,9 @@ Probe calls (tokens sent): A — 1428, 1464, 1497, 1541, 1575. B — 1099, 1135,
 | Q-4 the constraint | turn 6 | yes | You said you can come to the office on Thursdays. | yes | You can come to the office on Thursdays. |
 | Q-5 the open question | turn 7 | yes | You asked whether a scanned letter from your employer would count, or whether the original was required. | yes | You asked whether a scanned letter from your employer is accepted or whether the original is required. |
 | **retrieved** | | 5/5 | | 5/5 | |
-
+ 
 ### The state my compression produced
-
+ 
 ```json
 {
   "applicant_id": "A-202",
@@ -167,41 +171,41 @@ Probe calls (tokens sent): A — 1428, 1464, 1497, 1541, 1575. B — 1099, 1135,
   "language": "English and Kazakh"
 }
 ```
-
+ 
 ### Written answers
-
+ 
 **1. What did compression buy?** Peak tokens both ways, probes retrieved both
 ways, and — if a probe was lost — which one and which turn it came from.
-
-> The peak without compression was 1575 tokens (the last probe). With compression the peak was 1370 tokens, at T9, before compression. After compression, the calls became smaller: T11 was 1003 tokens, and the last probe was 1246 tokens, not 1575. Both runs retrieved 5 of 5 probes, so no probe was lost. The Thursday fact and the employer question stayed because the schema has `constraints` and `open_questions` fields. But the saving is small in total (18491 vs 19207 tokens), because the conversation is short and the compress call also costs tokens. In a long chat the saving would be much bigger.
-
+ 
+> Peak: 1575 tokens without compression, 1370 with compression (T9, just before compressing). After compression the calls were smaller (last probe 1246, not 1575). Both runs got 5/5 probes, nothing was lost. The total saving is small (18491 vs 19207), because the chat is short and the compress call also costs tokens.
+ 
 **2. Why must the state be structured rather than a paragraph?** You could have
 asked for "a summary". Say what changes when the summary is an object with
 named fields.
-
-> With named fields, my program can check the summary with the schema. If a field is missing or the JSON is broken, the program does not delete the history. A paragraph cannot be checked like this. Also, the fields make the model think about every category. For example, it must fill `constraints` and `open_questions`. In a normal paragraph, the model would maybe forget small things like "only Thursdays", because they are not about the grant decision. The code can also read the fields directly, for example `applicant_id`.
-
+ 
+> With fields, my code can check the summary with the schema, and if it is broken, the history is not deleted. A paragraph cannot be checked. Fields also make the model fill every part, like `constraints` and `open_questions`, so small things like "only Thursdays" are not forgotten.
+ 
 **3. What is missing from your state that you would add?** Name what you would
 add and what you would drop to pay for it.
-
-> My state only has what the applicant said. It does not have what the office answered. `decisions` is empty, but in the chat we found that A-202 can get 150,000 KZT when the ID card is on file. I would add a `status` field (for example "eligible after id_card, 150,000 KZT") and an `answers_given` field, so the assistant remembers what it already told the applicant. To pay for this, I would drop `topic`, because it is a long sentence and nobody uses it later.
-
+ 
+> My state has only what the applicant said, not what the office answered (`decisions` is empty). I would add `status` (for example "eligible after id_card, 150,000 KZT") and `answers_given`. To pay for it, I would drop `topic`, because nobody uses it.
+ 
 **4. When is compression the wrong choice?** Name a conversation where it would
 lose something that cannot be recovered, and say whether your program would
 notice.
-
-> Compression is bad when the exact words are important. For example, the applicant writes the text of an appeal letter, or first says "my band is 2" and later says "sorry, it is 1". The summary keeps only a short version, and the old messages are deleted, so we cannot get the exact words back. My program would not notice. It only checks that the JSON has the right form, not that the facts are true or complete. In my own state, the model added "admissions office", which nobody said, and the check still passed.
-
+ 
+> When exact words matter: for example an appeal letter, or "my band is 2" and later "sorry, it is 1". The old messages are deleted, so the exact words are lost. My program would not notice: it checks only the JSON form, not the facts. My state even has "admissions office", which nobody said, and it still passed.
+ 
 ## Sublab Hard — stories in, CVs out, the best candidate by code
-
+ 
 File: `sublab_hard/cv_extract_and_rank.py` · output: `sublab_hard/results.md`
-
+ 
 ### Part 1 — extraction
-
-The rules are in `RULES` and `ADDED_RULES` in the prompt (not null → never estimated, GPA converted to 4.0 with the original scale, only published/accepted papers count, contradictions → null + recorded, evidence quote for every filled field). The rubric's counting rules are also in the prompt.
-
-Rule I added (rule 6): experience months count only from a written start month and end month. A number of months without dates, "today", "continuing" and "about forty months" are not countable.
-
+ 
+All rules are in the prompt (`RULES`, `ADDED_RULES` and the rubric counting rules): no fact → null; GPA changed to 4.0, old scale saved; only published or accepted papers count; contradiction → null and written down; a quote for every field.
+ 
+Rule I added (rule 6): count experience months only from a start month and an end month.
+ 
 | Story | Parsed | Valid | Null fields | Traps hit |
 |---|---|---|---|---|
 | story-01 | yes | yes | none | none |
@@ -210,11 +214,46 @@ Rule I added (rule 6): experience months count only from a written start month a
 | story-04 | yes | yes | none | 3 papers not published (under review, in preparation ×2), not counted |
 | story-05 | yes | yes | none | story in Kazakh; 1 paper in preparation, not counted |
 | story-06 | yes | yes | degree, graduation_year, gpa_4_scale, gpa_original_scale, experience_months | GPA 3.2 vs 3.5 → contradiction, null; graduated 2024 vs graduating 2026 → contradiction, null; "about forty months", no end date → null; poster not counted |
-
+ 
+The extraction for **story-06**, the story that says two different things (copied from `sublab_hard/results.md`):
+ 
+```json
+{
+  "candidate_id": "story-06",
+  "full_name": "Nurzhan Abilov",
+  "degree": null,
+  "graduation_year": null,
+  "gpa_4_scale": null,
+  "gpa_original_scale": null,
+  "languages": ["Kazakh", "Russian", "English"],
+  "published_count": 1,
+  "unpublished_outputs": ["One poster at a local event"],
+  "experience_months": null,
+  "evidence": {
+    "candidate_id": "CANDIDATE ID: story-06",
+    "full_name": "# Nurzhan Abilov",
+    "degree": "I graduated in 2024 with a BSc in Statistics.",
+    "graduation_year": "I graduated in 2024 with a BSc in Statistics. I am currently a final-year student graduating in 2026",
+    "gpa_4_scale": "My GPA was 3.2. Actually I should double-check that, I think it was 3.5",
+    "gpa_original_scale": "My GPA was 3.2. Actually I should double-check that, I think it was 3.5",
+    "languages": "Languages: Kazakh, Russian, English.",
+    "published_count": "one paper published, in a peer-reviewed proceedings, on survey weighting.",
+    "unpublished_outputs": "One poster at a local event, which I do not think counts.",
+    "experience_months": "I have been at an insurance analytics team since February 2023, which is about forty months.",
+    "contradictions": "Either way it is somewhere in the low threes."
+  },
+  "contradictions": [
+    "The story says both \"I graduated in 2024 with a BSc in Statistics\" and \"I am currently a final-year student graduating in 2026,\" so degree and graduation year are contradictory.",
+    "The GPA is stated as both 3.2 and 3.5, so it cannot be resolved; no grading scale is stated.",
+    "Experience has a written start month (February 2023) but no written end month; \"about forty months\" and the ongoing wording are not countable under the rules."
+  ]
+}
+```
+ 
 ### Part 2 — scores from the model, total and winner from the code
-
-The model returns only three fields (`academic`, `research`, `experience`, 0–5). The code computes `0.5 * academic + 0.3 * research + 0.2 * experience`, rounded to 2 decimals, sorts the totals and names the winner.
-
+ 
+The model gives only three scores (0–5). My code calculates `0.5*academic + 0.3*research + 0.2*experience`, rounds to 2 decimals and chooses the winner.
+ 
 | Rank | Story | Name | Academic | Research | Experience | Total (code) |
 |---|---|---|---|---|---|---|
 | 1 | story-01 | Aziza Bekova | 5 | 5 | 2 | **4.40** |
@@ -223,11 +262,11 @@ The model returns only three fields (`academic`, `research`, `experience`, 0–5
 | 4 | story-03 | Lyazzat Omarova | 4 | 2.5 | 3 | 3.35 |
 | 5 | story-02 | Dias Yerzhanov | 2.5 | 2.5 | 0 | 2.00 |
 | 6 | story-06 | Nurzhan Abilov | 2 | 2.5 | 0 | 1.75 |
-
+ 
 **Winner (computed in code): story-01 — Aziza Bekova, total 4.40.** Gap between #1 and #2: 0.65.
-
+ 
 #### Prose answer (separate call)
-
+ 
 > Aziza Bekova should receive the funded place.
 >
 > She has the strongest overall evidence under the stated rules: a 3.8 GPA on a 4.0 scale, two published peer-reviewed outputs, and eight months of directly relevant work. Both publications count because the story explicitly says they were published; there is no need to count any merely submitted or planned work.
@@ -235,20 +274,25 @@ The model returns only three fields (`academic`, `research`, `experience`, 0–5
 > The closest alternatives are weaker in important respects. Aisha Nurlankyzy has a slightly higher GPA, but only one published paper and six months of experience. Tamerlan Saparov has 24 months of relevant work, but his GPA is 3.6 and only one of his four listed research items is published; the other three must not be counted. Lyazzat Omarova has a strong stated record—4.6/5.0, equivalent to 3.68/4.0—and 14 months of internships, but only one published paper. Dias Yerzhanov and Nurzhan Abilov have substantial work experience, but Dias provides no GPA and Nurzhan's GPA is contradictory, so neither can receive a reliable academic score.
 >
 > Using a reasonable intermediate scoring scheme—five for the stated top benchmark, half credit for one of two publications, and experience capped at five points at 24 months—Aziza ranks first with an illustrative weighted total of about 4.33/5. Her advantage in both academic record and published research outweighs her shorter work experience.
-
+ 
 ### Part 3 — written answers
-
+ 
 **1. Which rule did you have to add, and what broke without it?**
-I added a rule about experience: months count only when the story gives a start month and an end month. Without it, the model counted "thirty-six months" for story-02 (Dias) and "about forty months" for story-06 (Nurzhan), and both got experience 5. Story-02 forced this rule, because it has no dates, only "continuing today". My first version still allowed "an exact number of months", so story-02 still got 36. After I changed it to "dates only", both became null.
-
+ 
+> Rule 6: count months only from a start month and an end month. Without it, the model counted "thirty-six months" (story-02) and "about forty months" (story-06), and both got 5 for experience. Story-02 forced this rule: it has no dates, only "continuing today". After the rule, both became null.
+ 
 **2. Where did the model guess, and where did your code decide?**
-The model guessed: story-02 has no GPA, and the rubric says no GPA = 0 on academic, but the model gave 2.5 (in other runs 2 and 0). The code decided the total and the winner: for story-01 it computed 0.5·5 + 0.3·5 + 0.2·2 = 4.40, sorted all totals and chose the highest.
-
+ 
+> The model guessed: story-02 has no GPA, the rubric says 0, but the model gave 2.5 (in other runs 2 and 0). The code decided: for story-01 it calculated 0.5·5 + 0.3·5 + 0.2·2 = 4.40, then sorted the totals and chose the winner.
+ 
 **3. Did the prose ranking and the computed ranking agree?**
-They agreed on the winner, Aziza Bekova (story-01). But not below her: the prose says Aisha is the closest, my code puts Tamerlan second. The prose also made its own total, "about 4.33", but my code computed 4.40. I trust the computed ranking, because the scores are fields and the total is computed the same way for everyone. A number inside a sentence cannot be checked or compared.
-
+ 
+> Same winner, Aziza (story-01), but a different second place (prose: Aisha, code: Tamerlan). The prose also made its own total, "about 4.33", but the code got 4.40. I trust the code: the scores are fields and the total is calculated the same way for everyone.
+ 
 **4. The rubric has no anchor for a contradicted field. What did you do?**
-Story-06 says GPA 3.2 and then 3.5. The field became null and the contradiction was recorded. I gave no special rule to the scoring model, so it decided itself: academic 0, then 1, then 2 in three runs. This is a gap in the rubric. I think a contradicted field should not be scored like "no GPA". The candidate should be marked "check by a person", and the committee should ask the candidate before ranking.
-
+ 
+> The GPA became null and the contradiction was written down. The scoring model had no rule for this and gave academic 0, 1 and 2 in three runs. I think a contradiction is not the same as "no GPA": the candidate should be marked "a person must check" and asked before the ranking.
+ 
 **5. How close were the top two?**
-Story-01 had 4.40 and story-04 had 3.75, a gap of 0.65, so it was not close. If the gap was under 0.05, I would tell the committee it is a tie, because the model scores change between runs (Dias academic: 2, 0, 2.5). To make the decision defensible, I would count months from dates in my code, keep an evidence quote for every number, and run the scoring several times to check that the order stays the same.
+ 
+> 4.40 vs 3.75, a gap of 0.65, so not close. Under 0.05 I would call it a tie, because the scores change between runs. To make it fair, I would count months from dates in code, keep a quote for every number, and run the scoring a few times.
