@@ -1,9 +1,9 @@
 # HW2 submission
 
-**Name:**
-**Student ID:**
-**Group:**
-**Repository:**
+**Name: Zhaiylgan Gulnaz**
+**Student ID: s23067637**
+**Group: CSS4007-ENG-10**
+**Repository: hw2-KALDYBAKYZY**
 
 ## AI tool disclosure
 
